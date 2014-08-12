@@ -1,0 +1,8 @@
+gogame
+*~
+*.exe
+tmp/*
+*.sw?
+.hhhh
+.*
+!.gitignore
