@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -11,14 +13,21 @@ type Window interface {
 
 // SDLWindow is a Window using SDL2
 type SDLWindow struct {
-	window *sdl.Window
+	window  *sdl.Window
+	context sdl.GLContext
 }
 
 // NewSDLWindow constructs a SDLWindow.
-func NewSDLWindow(name string, width int, height int) *SDLWindow {
+func NewSDLWindow(name string, width int, height int) (*SDLWindow, error) {
 	window := new(SDLWindow)
-	window.window = sdl.CreateWindow(name, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, width, height, sdl.WINDOW_SHOWN)
-	return window
+
+	window.window = sdl.CreateWindow(name, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, width, height, sdl.WINDOW_OPENGL)
+	window.context = sdl.GL_CreateContext(window.window)
+
+	if window.context == nil {
+		return nil, errors.New("Could not create OpenGL context.")
+	}
+	return window, nil
 }
 
 func (window SDLWindow) Run() {

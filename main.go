@@ -1,11 +1,14 @@
 package main
 
-import (
-	"fmt"
-)
+import "log"
 
 func main() {
-	fmt.Println("Running...")
-	game := NewGame("game.yml")
+	log.Println("Running...")
+
+	game, err := NewGame("game.yml", "settings.yml")
+	if err != nil {
+		log.Panic("ERROR: ", err.Error())
+	}
+
 	game.Run()
 }
