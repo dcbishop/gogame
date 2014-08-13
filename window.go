@@ -9,6 +9,8 @@ import (
 // Window is where we render to.
 type Window interface {
 	Run()
+	SetTitle(name string)
+	SetSize(width int, height int)
 }
 
 // SDLWindow is a Window using SDL2
@@ -44,4 +46,14 @@ func (window SDLWindow) Run() {
 
 	sdl.Delay(5000)
 	window.window.Destroy()
+}
+
+// SetTitle sets the title of the Window
+func (window SDLWindow) SetTitle(name string) {
+	window.window.SetTitle(name)
+}
+
+// SetSize sets the size of the Window
+func (window SDLWindow) SetSize(width int, height int) {
+	window.window.SetSize(width, height)
 }

@@ -11,4 +11,6 @@ func main() {
 	}
 
 	game.Run()
+	defer game.Finish()
+	//time.Sleep(50 * time.Second)
 }
