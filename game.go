@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"path"
 
 	"gopkg.in/yaml.v1"
 )
@@ -27,8 +28,11 @@ type Settings struct {
 }
 
 // NewGame constructs a Game.
-func NewGame(mfilename string, sfilename string) (*Game, error) {
+func NewGame(gamename string) (*Game, error) {
 	game := new(Game)
+
+	mfilename := path.Join("data", gamename, "manifest.yml")
+	sfilename := path.Join("data", gamename, "settings.yml")
 
 	var err error
 	game.manifest, err = LoadManifest(mfilename)
