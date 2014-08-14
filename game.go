@@ -74,15 +74,15 @@ func NewGame(gamename string) (*Game, error) {
 	return game, nil
 }
 
-// UpdateSettings applies any changes to the settings.
-func (game Game) UpdateSettings() {
+func (game Game) updateSettings() {
 	game.window.SetTitle(game.data.Manifest.Name)
 	game.window.SetSize(game.data.Settings.Width, game.data.Settings.Height)
 }
 
 // Finish cleans up. Closes the games file watcher.
 func (game Game) Finish() {
-	defer game.watcher.Close()
+	game.watcher.Close()
+	game.window.Destroy()
 }
 
 func watchFiles(gamename string) (*fsnotify.Watcher, error) {
@@ -107,9 +107,8 @@ func (game *Game) handleFileEvents() {
 	for {
 		select {
 		case event := <-game.watcher.Events:
-			log.Println("Event: ", event)
 			// [TODO]: Use modification timestamps...
-			// For some reason this doesn't work with vim and *some* files... it CHMOD, RENAME, REMOVE's them rather than WRITE...
+			// For some reason this doesn't work with Vim and *some* files... it CHMOD, RENAME, REMOVE's them rather than WRITE...
 			/*
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Println("Modified file:", event.Name)
@@ -118,7 +117,7 @@ func (game *Game) handleFileEvents() {
 			*/
 			game.touched <- event.Name
 		case err := <-game.watcher.Errors:
-			log.Println("error:", err)
+			log.Println("Error:", err)
 		}
 	}
 }
@@ -126,21 +125,11 @@ func (game *Game) handleFileEvents() {
 func (game *Game) consumeFileEvents() {
 	select {
 	case filename := <-game.touched:
-		log.Println("Processing", filename)
-		game.processFileUpdate(filename)
+		log.Println("Processing:", filename)
 		game.data.LoadYAML(filename)
+		game.watcher.Add(filename)
 	default:
 		// Noop
-	}
-}
-
-func (game *Game) processFileUpdate(filename string) {
-	if filename == manifestFilename(game.name) {
-		log.Println("Manifest updated")
-	}
-
-	if filename == settingsFilename(game.name) {
-		log.Println("Settings updated")
 	}
 }
 
@@ -163,6 +152,7 @@ func watchOrLogError(watcher *fsnotify.Watcher, filename string) error {
 
 // LoadYAML loads the data form a YAML file.
 func (data *Data) LoadYAML(filename string) error {
+	log.Println("Loading YAML:", filename)
 	rawdata, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Println("Warning: Could not read file.", err)
@@ -188,7 +178,9 @@ func (game Game) Run() {
 
 	for game.running {
 		game.consumeFileEvents()
-		//game.UpdateSettings()
-		//game.window.Update()
+		game.updateSettings()
+		game.window.Update()
 	}
+
+	game.Finish()
 }
