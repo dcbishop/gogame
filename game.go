@@ -4,7 +4,9 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
+	"path/filepath"
 
 	"gopkg.in/fsnotify.v0"
 	"gopkg.in/yaml.v1"
@@ -45,21 +47,12 @@ func NewGame(gamename string) (*Game, error) {
 	game.running = true
 	game.touched = make(chan string)
 
-	mfilename := path.Join("data", gamename, "manifest.yml")
-	sfilename := path.Join("data", gamename, "settings.yml")
+	go injectInitialFiles(game.touched, dataDirectory())
+	game.consumeAllFileEvents()
 
 	var err error
-	game.watcher, err = watchFiles(gamename)
-
-	err = game.data.LoadYAML(mfilename)
-	if err != nil {
-		log.Println("Warning: Could now load game manifest.", err)
-	}
-
-	err = game.data.LoadYAML(sfilename)
-	if err != nil {
-		log.Println("Warning: Could now load settings.", err)
-	}
+	game.watcher, err = spawnWatcher(gamename)
+	watchDirectory(game.watcher, dataDirectory())
 
 	game.window, err = NewSDLWindow(
 		game.data.Manifest.Name,
@@ -74,33 +67,43 @@ func NewGame(gamename string) (*Game, error) {
 	return game, nil
 }
 
-func (game Game) updateSettings() {
+func (game *Game) updateSettings() {
 	game.window.SetTitle(game.data.Manifest.Name)
 	game.window.SetSize(game.data.Settings.Width, game.data.Settings.Height)
 }
 
 // Finish cleans up. Closes the games file watcher.
-func (game Game) Finish() {
+func (game *Game) Finish() {
 	game.watcher.Close()
 	game.window.Destroy()
 }
 
-func watchFiles(gamename string) (*fsnotify.Watcher, error) {
-	mfilename := manifestFilename(gamename)
-	sfilename := settingsFilename(gamename)
-
+func spawnWatcher(gamename string) (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Println("Warning: Could not create fsnotify watcher")
-		return nil, err
 	}
 
-	// [TODO]: Walk the directory for any YAML files.
-	// [TODO]: Watch the whole data directory.
-	_ = watchOrLogError(watcher, mfilename)
-	_ = watchOrLogError(watcher, sfilename)
-
 	return watcher, nil
+}
+
+func watchDirectory(watcher *fsnotify.Watcher, root string) {
+	watcher.Add(root)
+}
+
+func injectInitialFiles(touched chan string, root string) {
+	filepath.Walk(root,
+		func(path string, _ os.FileInfo, _ error) error {
+			injectInitialFile(touched, path)
+			return nil
+		},
+	)
+}
+
+func injectInitialFile(touched chan string, filename string) {
+	if path.Ext(filename) == ".yml" {
+		touched <- filename
+	}
 }
 
 func (game *Game) handleFileEvents() {
@@ -122,23 +125,25 @@ func (game *Game) handleFileEvents() {
 	}
 }
 
-func (game *Game) consumeFileEvents() {
+func (game *Game) consumeAllFileEvents() {
+	for game.consumeFileEvents() {
+	}
+}
+
+func (game *Game) consumeFileEvents() bool {
 	select {
 	case filename := <-game.touched:
 		log.Println("Processing:", filename)
 		game.data.LoadYAML(filename)
 		game.watcher.Add(filename)
+		return true
 	default:
-		// Noop
+		return false
 	}
 }
 
-func manifestFilename(gamename string) string {
-	return path.Join("data", gamename, "manifest.yml")
-}
-
-func settingsFilename(gamename string) string {
-	return path.Join("data", gamename, "settings.yml")
+func dataDirectory() string {
+	return path.Join("data")
 }
 
 func watchOrLogError(watcher *fsnotify.Watcher, filename string) error {
@@ -173,11 +178,11 @@ func (data *Data) parseYaml(raw []byte) error {
 }
 
 // Run begins the game. Shows the Window, enters the main loop, etc...
-func (game Game) Run() {
+func (game *Game) Run() {
 	go game.handleFileEvents()
 
 	for game.running {
-		game.consumeFileEvents()
+		game.consumeAllFileEvents()
 		game.updateSettings()
 		game.window.Update()
 	}

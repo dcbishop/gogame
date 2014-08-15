@@ -24,29 +24,29 @@ type SDLWindow struct {
 		xpos int32
 		rect sdl.Rect
 	}
+	initialWidth  int
+	initialHeight int
 }
 
 // NewSDLWindow constructs a SDLWindow.
 func NewSDLWindow(name string, width int, height int) (*SDLWindow, error) {
+	sdl.Init(sdl.INIT_EVERYTHING)
 	window := new(SDLWindow)
 
 	window.window = sdl.CreateWindow(name, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, width, height, sdl.WINDOW_OPENGL)
+	window.window.Show()
 	window.context = sdl.GL_CreateContext(window.window)
+	window.surface = window.window.GetSurface()
 
 	if window.context == nil {
 		return nil, errors.New("Could not create OpenGL context.")
 	}
 	window.debug.xpos = 100
-	window.window.Show()
 	return window, nil
 }
 
 // Update redraws the Window
-func (window SDLWindow) Update() {
-	if window.surface == nil {
-		window.surface = window.window.GetSurface()
-	}
-
+func (window *SDLWindow) Update() {
 	window.debug.xpos = (window.debug.xpos + 1)
 	window.debug.rect = sdl.Rect{0 + window.debug.xpos, 0, 200 + window.debug.xpos, 200}
 
@@ -54,12 +54,13 @@ func (window SDLWindow) Update() {
 	window.window.UpdateSurface()
 }
 
-func (window SDLWindow) Destroy() {
+// Destroy cleans up the Window
+func (window *SDLWindow) Destroy() {
 	window.window.Destroy()
 }
 
 // SetTitle sets the title of the Window
-func (window SDLWindow) SetTitle(name string) {
+func (window *SDLWindow) SetTitle(name string) {
 	if window.title != name {
 		window.title = name
 		window.window.SetTitle(name)
@@ -67,6 +68,11 @@ func (window SDLWindow) SetTitle(name string) {
 }
 
 // SetSize sets the size of the Window
-func (window SDLWindow) SetSize(width int, height int) {
-	window.window.SetSize(width, height)
+func (window *SDLWindow) SetSize(width int, height int) {
+	if width != window.initialWidth || height != window.initialHeight {
+		window.initialWidth = width
+		window.initialHeight = height
+		window.window.SetSize(width, height)
+		window.surface = window.window.GetSurface()
+	}
 }
