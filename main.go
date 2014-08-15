@@ -5,7 +5,7 @@ import "log"
 func main() {
 	log.Println("Running...")
 
-	game, err := NewGame("testgame")
+	game, err := NewGame()
 	if err != nil {
 		log.Panic("ERROR: ", err.Error())
 	}

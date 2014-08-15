@@ -41,9 +41,8 @@ type Settings struct {
 }
 
 // NewGame constructs a Game.
-func NewGame(gamename string) (*Game, error) {
+func NewGame() (*Game, error) {
 	game := new(Game)
-	game.name = gamename
 	game.running = true
 	game.touched = make(chan string)
 
@@ -51,7 +50,7 @@ func NewGame(gamename string) (*Game, error) {
 	game.consumeAllFileEvents()
 
 	var err error
-	game.watcher, err = spawnWatcher(gamename)
+	game.watcher, err = spawnWatcher()
 	watchDirectory(game.watcher, dataDirectory())
 
 	game.window, err = NewSDLWindow(
@@ -78,7 +77,7 @@ func (game *Game) Finish() {
 	game.window.Destroy()
 }
 
-func spawnWatcher(gamename string) (*fsnotify.Watcher, error) {
+func spawnWatcher() (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Println("Warning: Could not create fsnotify watcher")
