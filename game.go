@@ -40,14 +40,22 @@ type Settings struct {
 	Fullscreen bool
 }
 
+const GAMENAME_UNNAMED = "ERROR: No game name found."
+const GAMENAME_LOADING = "Loading..."
+
 // NewGame constructs a Game.
 func NewGame() (*Game, error) {
 	game := new(Game)
 	game.running = true
 	game.touched = make(chan string)
+	game.data = failsafeData()
 
 	go injectInitialFiles(game.touched, dataDirectory())
 	game.consumeAllFileEvents()
+
+	if game.data.Manifest.Name == GAMENAME_LOADING {
+		game.data.Manifest.Name = GAMENAME_UNNAMED
+	}
 
 	var err error
 	game.watcher, err = spawnWatcher()
@@ -64,6 +72,13 @@ func NewGame() (*Game, error) {
 	}
 
 	return game, nil
+}
+
+func failsafeData() Data {
+	return Data{
+		Manifest{GAMENAME_LOADING},
+		Settings{800, 600, false},
+	}
 }
 
 func (game *Game) updateSettings() {
