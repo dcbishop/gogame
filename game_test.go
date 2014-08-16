@@ -25,7 +25,7 @@ func TestParseSettings(t *testing.T) {
 settings:
     width: 888
     height: 555
-    fullscreen: true
+    windowmode: fullscreen
 `)
 	d := Data{}
 	err := d.parseYaml([]byte(data))
@@ -41,7 +41,34 @@ settings:
 		t.Error("Failed to parse height")
 	}
 
-	if d.Settings.Fullscreen != true {
-		t.Error("Failed to parse fullscreen")
+	if d.Settings.WindowMode != windowModeFullscreen {
+		t.Error("Failed to parse fullscreen:", d.Settings.WindowMode)
+	}
+}
+
+func TestApplyDataChanges(t *testing.T) {
+	game := Game{}
+	game.data.Manifest.Name = "OldName"
+
+	data := Data{}
+	data.Manifest.Name = "NewName"
+
+	game.ApplyDataChanges(&data)
+
+	if game.data.Manifest.Name != "NewName" {
+		t.Error("Failed to apply new name to games data:", game.data.Manifest.Name, data.Manifest.Name)
+	}
+}
+
+func TestApplyDataChangesIgnoresMissingChanges(t *testing.T) {
+	game := Game{}
+	game.data.Manifest.Name = "OldName"
+
+	data := magicData()
+
+	game.ApplyDataChanges(&data)
+
+	if game.data.Manifest.Name != "OldName" {
+		t.Error("Applied empty name to games data")
 	}
 }

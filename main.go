@@ -10,5 +10,6 @@ func main() {
 		log.Panic("ERROR: ", err.Error())
 	}
 
+	game.SetDataDirectory(dataDirectory())
 	game.Run()
 }
