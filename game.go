@@ -50,17 +50,9 @@ func NewGame() (*Game, error) {
 	game.touched = make(chan string)
 	game.data = failsafeData()
 
-	go injectInitialFiles(game.touched, dataDirectory())
-	game.consumeAllFileEvents()
-
-	if game.data.Manifest.Name == GAMENAME_LOADING {
-		game.data.Manifest.Name = GAMENAME_UNNAMED
-	}
+	game.SetDataDirectory(dataDirectory())
 
 	var err error
-	game.watcher, err = spawnWatcher()
-	watchDirectory(game.watcher, dataDirectory())
-
 	game.window, err = NewSDLWindow(
 		game.data.Manifest.Name,
 		game.data.Settings.Width,
@@ -74,6 +66,18 @@ func NewGame() (*Game, error) {
 	return game, nil
 }
 
+// SetDataDirectory adds all files in this directory to game's internal data and watches for changes
+func (game *Game) SetDataDirectory(path string) {
+	injectInitialFiles(game.touched, dataDirectory())
+	game.consumeAllFileEvents()
+
+	if game.data.Manifest.Name == GAMENAME_LOADING {
+		game.data.Manifest.Name = GAMENAME_UNNAMED
+	}
+
+	game.watcher, _ = spawnWatcher()
+	watchDirectory(game.watcher, dataDirectory())
+}
 func failsafeData() Data {
 	return Data{
 		Manifest{GAMENAME_LOADING},
