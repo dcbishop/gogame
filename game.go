@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -94,26 +93,25 @@ func stringToWindowMode(mode string) windowMode {
 const failsafeGameName = "Unnamed"
 
 // NewGame constructs a Game.
-func NewGame() (*Game, error) {
+func NewGame() *Game {
 	game := new(Game)
 	game.running = true
 	game.handlingFileEvents = false
 	game.touched = make(chan string)
 	game.watcher, _ = spawnWatcher()
 	game.data = failsafeData()
+	game.window = nil
 
-	var err error
-	game.window, err = NewSDLWindow(
-		game.data.Manifest.Name,
-		game.data.Settings.Width,
-		game.data.Settings.Height,
-	)
+	return game
+}
 
-	if err != nil {
-		return nil, errors.New("ERROR! Could not open SDL2 OpenGL window")
+func (game *Game) SetWindow(window Window) {
+	if game.window != nil {
+		game.window.Destroy()
 	}
 
-	return game, nil
+	game.window = window
+	game.updateWindowSettings()
 }
 
 // SetDataDirectory adds all files in this directory to game's internal data and watches for changes
@@ -177,7 +175,9 @@ func magicData() Data {
 // Finish cleans up. Closes the games file watcher.
 func (game *Game) Finish() {
 	game.watcher.Close()
-	game.window.Destroy()
+	if game.window != nil {
+		game.window.Destroy()
+	}
 }
 
 func spawnWatcher() (*fsnotify.Watcher, error) {
@@ -292,7 +292,9 @@ func (game *Game) Run() {
 	for game.running {
 		game.consumeAllFileEvents()
 		game.updateWindowSettings()
-		game.window.Update()
+		if game.window != nil {
+			game.window.Update()
+		}
 	}
 
 	game.Finish()

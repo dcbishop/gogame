@@ -5,11 +5,14 @@ import "log"
 func main() {
 	log.Println("Running...")
 
-	game, err := NewGame()
+	window, err := NewSDLWindow()
 	if err != nil {
-		log.Panic("ERROR: ", err.Error())
+		log.Println("ERROR: ", err.Error())
 	}
 
+	game := NewGame()
+
 	game.SetDataDirectory(dataDirectory())
+	game.SetWindow(window)
 	game.Run()
 }

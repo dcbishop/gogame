@@ -29,7 +29,12 @@ type SDLWindow struct {
 }
 
 // NewSDLWindow constructs a SDLWindow.
-func NewSDLWindow(name string, width int, height int) (*SDLWindow, error) {
+func NewSDLWindow() (*SDLWindow, error) {
+	return newSDLWindowSettings(failsafeGameName, 0, 0)
+}
+
+//newSDLWindowSettings constructs a SDLWindow with initial settings
+func newSDLWindowSettings(name string, width int, height int) (*SDLWindow, error) {
 	sdl.Init(sdl.INIT_EVERYTHING)
 	window := new(SDLWindow)
 
