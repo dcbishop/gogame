@@ -48,21 +48,34 @@ settings:
 
 func TestApplyDataChanges(t *testing.T) {
 	game := Game{}
+	game.data = failsafeData()
 	game.data.Manifest.Name = "OldName"
 
 	data := Data{}
 	data.Manifest.Name = "NewName"
+	data.Settings.Width = 1024
+	data.Settings.Height = 768
 
 	game.ApplyDataChanges(&data)
 
 	if game.data.Manifest.Name != "NewName" {
 		t.Error("Failed to apply new name to games data:", game.data.Manifest.Name, data.Manifest.Name)
 	}
+
+	if game.data.Settings.Width != 1024 {
+		t.Error("Failed to apply new width to games data")
+	}
+
+	if game.data.Settings.Height != 768 {
+		t.Error("Failed to apply new height to games data")
+	}
 }
 
 func TestApplyDataChangesIgnoresMissingChanges(t *testing.T) {
 	game := Game{}
 	game.data.Manifest.Name = "OldName"
+	game.data.Settings.Width = 1024
+	game.data.Settings.Height = 768
 
 	data := magicData()
 
@@ -70,5 +83,13 @@ func TestApplyDataChangesIgnoresMissingChanges(t *testing.T) {
 
 	if game.data.Manifest.Name != "OldName" {
 		t.Error("Applied empty name to games data")
+	}
+
+	if game.data.Settings.Width != 1024 {
+		t.Error("Applied magic width to games data", game.data.Settings.Width)
+	}
+
+	if game.data.Settings.Height != 768 {
+		t.Error("Applied magic height to games data", game.data.Settings.Height)
 	}
 }

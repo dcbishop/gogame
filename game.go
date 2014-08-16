@@ -142,9 +142,9 @@ func (game *Game) applySettingsChanges(data *Data) {
 	}
 }
 
-// replaceIfPositive overrides oldValue with the value in newValue if newValue is positive
+// replaceIfPositive overrides oldValue with the value in newValue, if newValue is positive.
 func replaceIfPositive(oldValue *int, newValue *int) {
-	if *oldValue >= 0 {
+	if *newValue >= 0 {
 		*oldValue = *newValue
 	}
 }
