@@ -147,9 +147,7 @@ settings:
 
 					go game.consumeAllFileEvents()
 					game.touched <- path
-					close(game.quit)
 					game.everyLoop()
-					game.Run()
 
 					Convey("It should load the name.", func() {
 						So(game.data.Manifest.Name, ShouldEqual, "InitialName")
@@ -165,7 +163,8 @@ settings:
 						So(window.title, ShouldEqual, "InitialName")
 						So(window.width, ShouldEqual, 1024)
 						So(window.height, ShouldEqual, 768)
-						//So(window.windowMode, ShouldEqual, windowModeFullscreen)
+						// [TODO]:
+						// So(window.windowMode, ShouldEqual, windowModeFullscreen)
 					})
 
 					Reset(func() {
@@ -174,5 +173,24 @@ settings:
 				})
 			})
 		})
+		Convey("Finish should Destroy window", func() {
+			So(window.wasDestroyed, ShouldBeFalse)
+			game.Finish()
+			So(window.wasDestroyed, ShouldBeTrue)
+		})
+	})
+}
+
+func TestStringifyWindowMode(t *testing.T) {
+	Convey("Stringify WindowMode", t, func() {
+		So(windowModeWindowed.String(), ShouldEqual, "windowed")
+		So(windowModeFullscreen.String(), ShouldEqual, "fullscreen")
+		So(windowModeUnknown.String(), ShouldEqual, "unknown")
+	})
+
+	Convey("Un-Stringify WindowMode", t, func() {
+		So(stringToWindowMode("windowed"), ShouldEqual, windowModeWindowed)
+		So(stringToWindowMode("fullscreen"), ShouldEqual, windowModeFullscreen)
+		So(stringToWindowMode("unknown"), ShouldEqual, windowModeUnknown)
 	})
 }

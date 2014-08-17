@@ -45,9 +45,9 @@ type Settings struct {
 type windowMode int
 
 const (
-	windowModeUnknown = iota - 1
-	windowModeWindowed
-	windowModeFullscreen
+	windowModeUnknown    windowMode = iota - 1
+	windowModeWindowed   windowMode = iota
+	windowModeFullscreen windowMode = iota
 )
 
 const (
@@ -191,9 +191,6 @@ func spawnWatcher() (*fsnotify.Watcher, error) {
 	return watcher, nil
 }
 
-func watchDirectory(watcher *fsnotify.Watcher, root string) {
-}
-
 func injectInitialFiles(touched chan string, root string) {
 	filepath.Walk(root,
 		func(path string, _ os.FileInfo, _ error) error {
@@ -248,7 +245,7 @@ func (game *Game) consumeAllFileEvents() {
 	}
 }
 
-//consumeFileEvent consumes a single file event, returns false if where was none
+// consumeFileEvent consumes a single file event, returns false if where was none
 func (game *Game) consumeFileEvent() bool {
 	select {
 	case filename := <-game.touched:
@@ -264,6 +261,7 @@ func (game *Game) consumeFileEvent() bool {
 	}
 }
 
+// DataDirectory returns the directory where the game should look for it's data.
 func DataDirectory() string {
 	return "data"
 }
