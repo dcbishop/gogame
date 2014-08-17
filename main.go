@@ -12,7 +12,7 @@ func main() {
 
 	game := NewGame()
 
-	game.SetDataDirectory(dataDirectory())
+	game.SetDataDirectory(DataDirectory())
 	game.SetWindow(window)
 	game.Run()
 }

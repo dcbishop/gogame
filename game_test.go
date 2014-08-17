@@ -1,6 +1,13 @@
 package main
 
-import "testing"
+import (
+	"io/ioutil"
+	"os"
+	"path"
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+)
 
 func TestParseManifest(t *testing.T) {
 	var data = []byte(`
@@ -92,4 +99,44 @@ func TestApplyDataChangesIgnoresMissingChanges(t *testing.T) {
 	if game.data.Settings.Height != 768 {
 		t.Error("Applied magic height to games data", game.data.Settings.Height)
 	}
+}
+
+func TestFileWatcher(t *testing.T) {
+	data := []byte(`
+---
+manifest:
+    name: InitialName
+`)
+
+	Convey("Construct new Game", t, func() {
+		game := NewGame()
+		So(game.data.Manifest.Name, ShouldEqual, failsafeGameName)
+		var dir string
+		var err error
+		Convey("Create data directory", func() {
+			dir, err = ioutil.TempDir(".", "test")
+			So(err, ShouldBeNil)
+
+			Convey("Add YAML file", func() {
+				path := path.Join(dir, "data.yaml")
+				ioutil.WriteFile(path, data, 0600)
+
+				Convey("Set game's data directory", func() {
+					game.SetDataDirectory(dir)
+					So(game.watcher, ShouldNotBeNil)
+
+					Convey("It should load the name.", func() {
+						go game.consumeAllFileEvents()
+						game.touched <- path
+						close(game.quit)
+						game.Run()
+
+						So(game.data.Manifest.Name, ShouldEqual, "InitialName")
+
+						os.RemoveAll(dir)
+					})
+				})
+			})
+		})
+	})
 }

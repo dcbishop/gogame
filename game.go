@@ -20,6 +20,7 @@ type Game struct {
 	touched            chan string
 	running            bool
 	handlingFileEvents bool
+	quit               chan bool
 }
 
 // Data stores all the stuff pulled in from YAML
@@ -101,6 +102,7 @@ func NewGame() *Game {
 	game.watcher, _ = spawnWatcher()
 	game.data = failsafeData()
 	game.window = nil
+	game.quit = make(chan bool)
 
 	return game
 }
@@ -262,8 +264,8 @@ func (game *Game) consumeFileEvent() bool {
 	}
 }
 
-func dataDirectory() string {
-	return path.Join("data")
+func DataDirectory() string {
+	return "data"
 }
 
 // LoadYAML loads the data form a YAML file.
@@ -289,13 +291,25 @@ func (data *Data) parseYaml(raw []byte) error {
 
 // Run begins the game. Shows the Window, enters the main loop, etc...
 func (game *Game) Run() {
-	for game.running {
-		game.consumeAllFileEvents()
-		game.updateWindowSettings()
-		if game.window != nil {
-			game.window.Update()
+	running := true
+
+	for running {
+		select {
+		case _, _ = <-game.quit:
+			running = false
+			game.running = false
+		default:
+			game.everyLoop()
 		}
 	}
 
 	game.Finish()
+}
+
+func (game *Game) everyLoop() {
+	game.consumeAllFileEvents()
+	game.updateWindowSettings()
+	if game.window != nil {
+		game.window.Update()
+	}
 }
