@@ -5,6 +5,16 @@ install:
   - wget http://www.libsdl.org/release/SDL2-2.0.3.tar.gz
   - tar -zxvf SDL2-2.0.3.tar.gz
   - cd SDL2-2.0.3
-  - ./configure && make && sudo make install
+  - "./configure && make && sudo make install"
   - cd -
   - go get -d -v -t ./...
+  - go get code.google.com/p/go.tools/cmd/cover
+  - go get github.com/mattn/goveralls
+
+script:
+  - go test -v -covermode=count -coverprofile=coverage.out
+  - "$HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN"
+
+env:
+  global:
+    secure: Pq/1fQdVBLmEjSvL8i5FZKS8Mzc3Rtfqmk5Rz3CrCMUp0kcAlBmRn0yz0zDNAooHeiknIq2Jl2+5xkJQ1b1lcie/yJVwIA59NlzxmI7mbEu9AnrTy/An4GBFhtVkHK2HnzPL2udkok9Z47bQ2qaAC115gijjznaogQZrKuiFdzM=
