@@ -101,18 +101,38 @@ func TestApplyDataChangesIgnoresMissingChanges(t *testing.T) {
 	}
 }
 
+type TestWindow struct {
+	updates      int
+	title        string
+	width        int
+	height       int
+	wasDestroyed bool
+}
+
+func (window *TestWindow) Update()                       { window.updates++ }
+func (window *TestWindow) SetTitle(name string)          { window.title = name }
+func (window *TestWindow) SetSize(width int, height int) { window.width = width; window.height = height }
+func (window *TestWindow) Destroy()                      { window.wasDestroyed = true }
+
 func TestFileWatcher(t *testing.T) {
 	data := []byte(`
 ---
 manifest:
     name: InitialName
+settings:
+    width: 1024
+    height: 768
+    windowmode: fullscreen
 `)
 
 	Convey("Construct new Game", t, func() {
 		game := NewGame()
+		window := TestWindow{}
+		game.SetWindow(&window)
 		So(game.data.Manifest.Name, ShouldEqual, failsafeGameName)
 		var dir string
 		var err error
+
 		Convey("Create data directory", func() {
 			dir, err = ioutil.TempDir(".", "test")
 			So(err, ShouldBeNil)
@@ -125,14 +145,30 @@ manifest:
 					game.SetDataDirectory(dir)
 					So(game.watcher, ShouldNotBeNil)
 
+					go game.consumeAllFileEvents()
+					game.touched <- path
+					close(game.quit)
+					game.everyLoop()
+					game.Run()
+
 					Convey("It should load the name.", func() {
-						go game.consumeAllFileEvents()
-						game.touched <- path
-						close(game.quit)
-						game.Run()
-
 						So(game.data.Manifest.Name, ShouldEqual, "InitialName")
+					})
 
+					Convey("It should load the video settings.", func() {
+						So(game.data.Settings.Width, ShouldEqual, 1024)
+						So(game.data.Settings.Height, ShouldEqual, 768)
+						So(game.data.Settings.WindowMode, ShouldEqual, windowModeFullscreen)
+					})
+
+					Convey("It should set the Window settings.", func() {
+						So(window.title, ShouldEqual, "InitialName")
+						So(window.width, ShouldEqual, 1024)
+						So(window.height, ShouldEqual, 768)
+						//So(window.windowMode, ShouldEqual, windowModeFullscreen)
+					})
+
+					Reset(func() {
 						os.RemoveAll(dir)
 					})
 				})
