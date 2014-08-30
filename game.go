@@ -120,7 +120,7 @@ func (game *Game) SetWindow(window Window) {
 func (game *Game) SetDataDirectory(path string) {
 	game.watcher.Add(path)
 	game.injectInitialFiles(path)
-	go game.forwardWatcherFileEvents()
+	game.forwardWatcherFileEvents()
 }
 
 // ApplyDataChanges merges in new changes from data.
@@ -212,19 +212,13 @@ func extensionIsYaml(filename string) bool {
 
 // forwardWatcherFileEvents recieves events from the file watcher and fowards them to the game's touched channel
 func (game *Game) forwardWatcherFileEvents() {
-	if game.handlingFileEvents == true {
-		log.Println("ERROR: Already handling events.")
-		return
-	}
-
 	if game.watcher == nil {
 		log.Println("ERROR: Tried to recieve file events without a watcher.")
 		return
 	}
 
-	game.handlingFileEvents = true
-
-	for {
+	events := true
+	for events {
 		select {
 		case event := <-game.watcher.Events:
 			// [TODO]: Use modification timestamps...
@@ -235,6 +229,8 @@ func (game *Game) forwardWatcherFileEvents() {
 			}
 		case err := <-game.watcher.Errors:
 			log.Println("ERROR: fsnotify watcher error:", err)
+		default:
+			events = false
 		}
 	}
 }
@@ -315,6 +311,7 @@ func (game *Game) Run() {
 }
 
 func (game *Game) everyLoop() {
+	game.forwardWatcherFileEvents()
 	game.consumeAllFileEvents()
 	game.updateWindowSettings()
 	if game.window != nil {
