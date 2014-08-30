@@ -17,7 +17,6 @@ type Game struct {
 	window             Window
 	data               Data
 	watcher            *fsnotify.Watcher
-	running            bool
 	handlingFileEvents bool
 	quit               chan bool
 	waitingFiles       []string
@@ -96,7 +95,6 @@ const failsafeGameName = "Unnamed"
 // NewGame constructs a Game.
 func NewGame() *Game {
 	game := new(Game)
-	game.running = true
 	game.handlingFileEvents = false
 	game.watcher, _ = spawnWatcher()
 	game.data = failsafeData()
@@ -301,7 +299,6 @@ func (game *Game) Run() {
 		select {
 		case _, _ = <-game.quit:
 			running = false
-			game.running = false
 		default:
 			game.everyLoop()
 		}
