@@ -17,10 +17,10 @@ type Game struct {
 	window             Window
 	data               Data
 	watcher            *fsnotify.Watcher
-	touched            chan string
 	running            bool
 	handlingFileEvents bool
 	quit               chan bool
+	waitingFiles       []string
 }
 
 // Data stores all the stuff pulled in from YAML
@@ -98,11 +98,11 @@ func NewGame() *Game {
 	game := new(Game)
 	game.running = true
 	game.handlingFileEvents = false
-	game.touched = make(chan string)
 	game.watcher, _ = spawnWatcher()
 	game.data = failsafeData()
 	game.window = nil
 	game.quit = make(chan bool)
+	game.waitingFiles = []string{}
 
 	return game
 }
@@ -119,7 +119,7 @@ func (game *Game) SetWindow(window Window) {
 // SetDataDirectory adds all files in this directory to game's internal data and watches for changes
 func (game *Game) SetDataDirectory(path string) {
 	game.watcher.Add(path)
-	go injectInitialFiles(game.touched, path)
+	game.injectInitialFiles(path)
 	go game.forwardWatcherFileEvents()
 }
 
@@ -191,18 +191,18 @@ func spawnWatcher() (*fsnotify.Watcher, error) {
 	return watcher, nil
 }
 
-func injectInitialFiles(touched chan string, root string) {
+func (game *Game) injectInitialFiles(root string) {
 	filepath.Walk(root,
 		func(path string, _ os.FileInfo, _ error) error {
-			injectInitialFile(touched, path)
+			game.injectInitialFile(path)
 			return nil
 		},
 	)
 }
 
-func injectInitialFile(touched chan string, filename string) {
+func (game *Game) injectInitialFile(filename string) {
 	if extensionIsYaml(filename) {
-		touched <- filename
+		game.waitingFiles = append(game.waitingFiles, filename)
 	}
 }
 
@@ -231,7 +231,7 @@ func (game *Game) forwardWatcherFileEvents() {
 			// [TODO]: Deal with Vim. CHMOD, RENAME, REMOVE's them rather than WRITE...
 			// [TODO]: Deal with spammy editors. Wait for a period of time befoure consuming while merging dupes...
 			if event.Op&fsnotify.Remove != fsnotify.Remove {
-				game.touched <- event.Name
+				game.waitingFiles = append(game.waitingFiles, event.Name)
 			}
 		case err := <-game.watcher.Errors:
 			log.Println("ERROR: fsnotify watcher error:", err)
@@ -247,17 +247,27 @@ func (game *Game) consumeAllFileEvents() {
 
 // consumeFileEvent consumes a single file event, returns false if where was none
 func (game *Game) consumeFileEvent() bool {
-	select {
-	case filename := <-game.touched:
-		if extensionIsYaml(filename) {
-			data := magicData()
-			data.loadYAML(filename)
-			game.ApplyDataChanges(&data)
-			game.watcher.Add(filename)
-		}
-		return true
-	default:
+	if len(game.waitingFiles) == 0 {
 		return false
+	}
+
+	filename := game.popWaitingFile()
+	game.processFile(filename)
+	return true
+}
+
+func (game *Game) popWaitingFile() string {
+	filename := game.waitingFiles[len(game.waitingFiles)-1]
+	game.waitingFiles = game.waitingFiles[:len(game.waitingFiles)-1]
+	return filename
+}
+
+func (game *Game) processFile(filename string) {
+	if extensionIsYaml(filename) {
+		data := magicData()
+		data.loadYAML(filename)
+		game.ApplyDataChanges(&data)
+		game.watcher.Add(filename)
 	}
 }
 

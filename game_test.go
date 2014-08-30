@@ -145,8 +145,7 @@ settings:
 					game.SetDataDirectory(dir)
 					So(game.watcher, ShouldNotBeNil)
 
-					go game.consumeAllFileEvents()
-					game.touched <- path
+					game.waitingFiles = append(game.waitingFiles, path)
 					game.everyLoop()
 
 					Convey("It should load the name.", func() {
