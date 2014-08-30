@@ -7,7 +7,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"gopkg.in/fsnotify.v0"
+	"gopkg.in/fsnotify.v1"
 	"gopkg.in/yaml.v1"
 )
 
