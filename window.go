@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -20,6 +21,7 @@ type SDLWindow struct {
 	window  *sdl.Window
 	context sdl.GLContext
 	surface *sdl.Surface
+	render  *sdl.Renderer
 	debug   struct {
 		xpos int32
 		rect sdl.Rect
@@ -38,10 +40,20 @@ func newSDLWindowSettings(name string, width int, height int) (*SDLWindow, error
 	sdl.Init(sdl.INIT_EVERYTHING)
 	window := new(SDLWindow)
 
-	window.window = sdl.CreateWindow(name, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, width, height, sdl.WINDOW_OPENGL)
+	w, err := sdl.CreateWindow(name, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, width, height, sdl.WINDOW_OPENGL)
+	if err != nil {
+		return nil, err
+	}
+	window.window = w
 	window.window.Show()
 	window.context = sdl.GL_CreateContext(window.window)
 	window.surface = window.window.GetSurface()
+
+	r, err := window.window.GetRenderer()
+	window.render = r
+	if err != nil {
+		log.Println(err)
+	}
 
 	if window.context == nil {
 		return nil, errors.New("Could not create OpenGL context.")
@@ -52,11 +64,18 @@ func newSDLWindowSettings(name string, width int, height int) (*SDLWindow, error
 
 // Update redraws the Window
 func (window *SDLWindow) Update() {
-	window.debug.xpos = (window.debug.xpos + 1)
-	window.debug.rect = sdl.Rect{0 + window.debug.xpos, 0, 200 + window.debug.xpos, 200}
+	w, _ := window.window.GetSize()
+	window.debug.xpos = (window.debug.xpos + 1) % int32(w)
+	window.debug.rect = sdl.Rect{0 + window.debug.xpos, 0, 20, 20}
 
-	window.surface.FillRect(&window.debug.rect, 0xffff0000)
-	window.window.UpdateSurface()
+	window.render.SetDrawColor(255, 255, 255, 255)
+	err := window.render.Clear()
+	if err != nil {
+		log.Println(err)
+	}
+	window.render.SetDrawColor(255, 0, 0, 255)
+	window.render.FillRect(&window.debug.rect)
+	window.render.Present()
 }
 
 // Destroy cleans up the Window
