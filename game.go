@@ -1,8 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,6 +21,8 @@ type Game struct {
 	handlingFileEvents bool
 	quit               chan bool
 	waitingFiles       []string
+	Stdout             io.Writer
+	Stderr             io.Writer
 }
 
 // Data stores all the stuff pulled in from YAML
@@ -96,15 +99,22 @@ const failsafeGameName = "Unnamed"
 func NewGame() *Game {
 	game := new(Game)
 	game.handlingFileEvents = false
-	game.watcher, _ = spawnWatcher()
+	watcher, err := spawnWatcher()
+	if err != nil {
+		game.LogError("Could not create fsnotify watcher.")
+	}
+	game.watcher = watcher
 	game.data = failsafeData()
 	game.window = nil
 	game.quit = make(chan bool)
 	game.waitingFiles = []string{}
+	game.Stdout = os.Stdout
+	game.Stderr = os.Stderr
 
 	return game
 }
 
+// SetWindow sets the window to render to.
 func (game *Game) SetWindow(window Window) {
 	if game.window != nil {
 		game.window.Destroy()
@@ -180,13 +190,19 @@ func (game *Game) Finish() {
 	}
 }
 
+// Log will output an error to the game's StdOut writer.
+func (game *Game) Log(a ...interface{}) {
+	fmt.Fprintln(game.Stdout, a)
+}
+
+// LogError will output an error to the game's StdErr writer.
+func (game *Game) LogError(a ...interface{}) {
+	fmt.Fprintln(game.Stderr, a)
+}
+
 func spawnWatcher() (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Println("Warning: Could not create fsnotify watcher.")
-	}
-
-	return watcher, nil
+	return watcher, err
 }
 
 func (game *Game) injectInitialFiles(root string) {
@@ -211,7 +227,7 @@ func extensionIsYaml(filename string) bool {
 // forwardWatcherFileEvents recieves events from the file watcher and fowards them to the game's touched channel
 func (game *Game) forwardWatcherFileEvents() {
 	if game.watcher == nil {
-		log.Println("ERROR: Tried to recieve file events without a watcher.")
+		game.LogError("Tried to recieve file events without a watcher.")
 		return
 	}
 
@@ -226,7 +242,7 @@ func (game *Game) forwardWatcherFileEvents() {
 				game.waitingFiles = append(game.waitingFiles, event.Name)
 			}
 		case err := <-game.watcher.Errors:
-			log.Println("ERROR: fsnotify watcher error:", err)
+			game.LogError("fsnotify watcher error:", err)
 		default:
 			events = false
 		}
@@ -259,8 +275,13 @@ func (game *Game) popWaitingFile() string {
 func (game *Game) processFile(filename string) {
 	if extensionIsYaml(filename) {
 		data := magicData()
-		data.loadYAML(filename)
-		game.ApplyDataChanges(&data)
+		game.Log("Loading:", filename, "...")
+		err := data.loadYAML(filename)
+		if err != nil {
+			game.LogError("Could now load YAML:", err)
+		} else {
+			game.ApplyDataChanges(&data)
+		}
 		game.watcher.Add(filename)
 	}
 }
@@ -272,7 +293,6 @@ func DataDirectory() string {
 
 // LoadYAML loads the data form a YAML file.
 func (data *Data) loadYAML(filename string) error {
-	log.Println("Loading YAML:", filename)
 	rawdata, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
@@ -283,12 +303,7 @@ func (data *Data) loadYAML(filename string) error {
 }
 
 func (data *Data) parseYaml(raw []byte) error {
-	err := yaml.Unmarshal(raw, &data)
-	if err != nil {
-		log.Println("Warning: Could not parse YAML.", err)
-	}
-
-	return err
+	return yaml.Unmarshal(raw, &data)
 }
 
 // Run begins the game. Shows the Window, enters the main loop, etc...
