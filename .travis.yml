@@ -2,9 +2,9 @@ language: go
 
 install:
   - export LD_LIBRARY_PATH="/usr/local/lib/:$LD_LIBRARY_PATH"
-  - wget http://www.libsdl.org/release/SDL2-2.0.3.tar.gz
-  - tar -zxvf SDL2-2.0.3.tar.gz
-  - cd SDL2-2.0.3
+  - wget http://www.libsdl.org/release/SDL2-2.0.4.tar.gz
+  - tar -zxvf SDL2-2.0.4.tar.gz
+  - cd SDL2-2.0.4
   - "./configure && make && sudo make install"
   - cd -
   - go get -d -v -t ./...
