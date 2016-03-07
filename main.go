@@ -1,9 +1,14 @@
 package main
 
-import "log"
+import (
+	"log"
+	"runtime"
+)
 
 func main() {
 	log.Println("Running...")
+
+	runtime.LockOSThread()
 
 	window, err := NewSDLWindow()
 	if err != nil {
