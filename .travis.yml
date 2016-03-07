@@ -1,4 +1,14 @@
+sodo: false
+
 language: go
+
+go:
+  - 1.6
+
+before_install:
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 
 install:
   - export LD_LIBRARY_PATH="/usr/local/lib/:$LD_LIBRARY_PATH"
@@ -8,13 +18,7 @@ install:
   - "./configure && make && sudo make install"
   - cd -
   - go get -d -v -t ./...
-  - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mattn/goveralls
 
 script:
   - go test -v -covermode=count -coverprofile=coverage.out
-  - "$HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN"
-
-env:
-  global:
-    secure: Pq/1fQdVBLmEjSvL8i5FZKS8Mzc3Rtfqmk5Rz3CrCMUp0kcAlBmRn0yz0zDNAooHeiknIq2Jl2+5xkJQ1b1lcie/yJVwIA59NlzxmI7mbEu9AnrTy/An4GBFhtVkHK2HnzPL2udkok9Z47bQ2qaAC115gijjznaogQZrKuiFdzM=
+  - $HOME/gopath/bin/goveralls -service=travis-ci
