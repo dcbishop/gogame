@@ -46,8 +46,15 @@ func newSDLWindowSettings(name string, width int, height int) (*SDLWindow, error
 	}
 	window.window = w
 	window.window.Show()
-	window.context = sdl.GL_CreateContext(window.window)
-	window.surface = window.window.GetSurface()
+	window.context, err = sdl.GL_CreateContext(window.window)
+	if err != nil {
+		return nil, err
+	}
+
+	window.surface, err = window.window.GetSurface()
+	if err != nil {
+		return nil, err
+	}
 
 	r, err := window.window.GetRenderer()
 	window.render = r
@@ -97,6 +104,6 @@ func (window *SDLWindow) SetSize(width int, height int) {
 		window.initialWidth = width
 		window.initialHeight = height
 		window.window.SetSize(width, height)
-		window.surface = window.window.GetSurface()
+		window.surface, _ = window.window.GetSurface()
 	}
 }
