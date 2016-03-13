@@ -79,7 +79,12 @@ func (window *SDLWindow) Update() {
 func (window *SDLWindow) updateDebugSquarePosition() {
 	w, _ := window.window.GetSize()
 	window.debug.xpos = (window.debug.xpos + 1) % int32(w)
-	window.debug.rect = sdl.Rect{0 + window.debug.xpos, 0, 20, 20}
+	window.debug.rect = sdl.Rect{
+		X: 0 + window.debug.xpos,
+		Y: 0,
+		W: 20,
+		H: 20,
+	}
 }
 
 // Renders the window.
