@@ -69,20 +69,38 @@ func newSDLWindowSettings(name string, width int, height int) (*SDLWindow, error
 	return window, nil
 }
 
-// Update redraws the Window
+// Update redraws the Window.
 func (window *SDLWindow) Update() {
+	window.updateDebugSquarePosition()
+	window.draw()
+}
+
+// Updates the position of the red debug square.
+func (window *SDLWindow) updateDebugSquarePosition() {
 	w, _ := window.window.GetSize()
 	window.debug.xpos = (window.debug.xpos + 1) % int32(w)
 	window.debug.rect = sdl.Rect{0 + window.debug.xpos, 0, 20, 20}
+}
 
+// Renders the window.
+func (window *SDLWindow) draw() {
+	window.clear()
+	drawDebugRedSquare(window.render, &window.debug.rect)
+	window.render.Present()
+}
+
+// Clears the window to white.
+func (window *SDLWindow) clear() {
 	window.render.SetDrawColor(255, 255, 255, 255)
 	err := window.render.Clear()
 	if err != nil {
 		log.Println(err)
 	}
-	window.render.SetDrawColor(255, 0, 0, 255)
-	window.render.FillRect(&window.debug.rect)
-	window.render.Present()
+}
+
+func drawDebugRedSquare(render *sdl.Renderer, rect *sdl.Rect) {
+	render.SetDrawColor(255, 0, 0, 255)
+	render.FillRect(rect)
 }
 
 // Destroy cleans up the Window
